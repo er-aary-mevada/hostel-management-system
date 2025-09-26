@@ -4,7 +4,6 @@ if(!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
     header("location: login.php");
     exit;
 }
-
 if($_SESSION["username"] === 'admin'){
     header("location: admin_dashboard.php");
     exit;
@@ -19,68 +18,244 @@ if($_SESSION["username"] === 'admin'){
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <h1>🎓 Student Dashboard</h1>
-        <p>Welcome to your student portal! Manage your hostel life and stay updated with all your information.</p>
-
-        <?php
-        require_once "config.php";
-        if (isset($_SESSION["email"])) {
-            $student_email = $_SESSION["email"];
-            $sql = "SELECT r.room_number, r.capacity FROM students s LEFT JOIN rooms r ON s.room_id = r.id WHERE s.email = ?";
-            if ($stmt = $conn->prepare($sql)) {
-                $stmt->bind_param("s", $student_email);
-                $stmt->execute();
-                $stmt->bind_result($room_number, $capacity);
-                if ($stmt->fetch() && $room_number) {
-                    echo '<div class="status-box status-success">';
-                    echo '<h3>🏠 Your Assigned Room</h3>';
-                    echo '<p><strong>Room Number:</strong> ' . htmlspecialchars($room_number) . '</p>';
-                    echo '<p><strong>Capacity:</strong> ' . htmlspecialchars($capacity) . ' persons</p>';
-                    echo '<p>✅ Room successfully assigned to you!</p>';
-                    echo '</div>';
-                } else {
-                    echo '<div class="status-box status-warning">';
-                    echo '<h3>📋 Room Status</h3>';
-                    echo '<p>No room assigned yet. Please apply for a room through the "View Rooms" section below.</p>';
-                    echo '<p>💡 Tip: Check available rooms and submit your application today!</p>';
-                    echo '</div>';
-                }
-                $stmt->close();
-            }
+    <style>
+        body {
+            background: linear-gradient(120deg, #1976d2 0%, #2563eb 100%);
+            min-height: 100vh;
+            font-family: 'Poppins', Arial, sans-serif;
         }
-        ?>
-        
-        <div class="card-grid">
-            <div class="function-card">
-                <h3>👤 My Profile</h3>
-                <p>View and update your personal information, contact details, and profile settings.</p>
-                <a href="profile.php" class="btn btn-primary">View Profile</a>
+        .dashboard-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background: #fff;
+            min-width: 260px;
+            max-width: 300px;
+            box-shadow: 0 8px 32px rgba(21,101,192,0.10);
+            border-radius: 0 24px 24px 0;
+            padding: 32px 0 0 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .sidebar-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1976d2;
+            margin-bottom: 32px;
+        }
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            width: 100%;
+            align-items: center;
+        }
+        .sidebar-nav a {
+            font-size: 1.08rem;
+            color: #607d8b;
+            text-decoration: none;
+            padding: 12px 32px;
+            border-radius: 10px;
+            transition: background 0.2s, color 0.2s;
+            width: 80%;
+            text-align: center;
+        }
+        .sidebar-nav a.active, .sidebar-nav a:hover {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .sidebar-nav a.logout {
+            color: #d32f2f;
+            margin-top: 32px;
+        }
+        .sidebar-nav a.logout:hover {
+            background: #ffebee;
+            color: #b71c1c;
+        }
+        .main-content {
+            flex: 1;
+            background: #fff;
+            border-radius: 24px;
+            margin: 32px;
+            box-shadow: 0 8px 32px rgba(21,101,192,0.10);
+            padding: 40px 48px;
+        }
+        .main-content h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 18px;
+        }
+        .main-content p {
+            color: #607d8b;
+            font-size: 1.08rem;
+            margin-bottom: 32px;
+        }
+    </style>
+    <div class="dashboard-wrapper">
+        <div class="sidebar">
+            <div class="sidebar-title">Student Panel</div>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-btn active" onclick="loadSection('student_dashboard_home.php', this); return false;">Dashboard</a>
+                <a href="#profile" class="nav-btn" onclick="loadSection('profile.php', this); return false;">My Profile</a>
+                <a href="#rooms" class="nav-btn" onclick="loadSection('student_rooms.php', this); return false;">View Rooms</a>
+                <a href="#payments" class="nav-btn" onclick="loadSection('student_payment.php', this); return false;">My Payments</a>
+                <a href="#settings" class="nav-btn" onclick="loadSection('student_settings.php', this); return false;">Account Settings</a>
+                <a href="logout.php" class="nav-btn logout">Logout</a>
+            </nav>
+        </div>
+        <div class="main-content">
+            <div id="main-area">
+                <!-- Content will be loaded here -->
             </div>
-            
-            <div class="function-card">
-                <h3>🏠 Browse Rooms</h3>
-                <p>Explore available hostel rooms and submit applications for your preferred accommodation.</p>
-                <a href="student_rooms.php" class="btn btn-primary">Browse Rooms</a>
+        </div>
+    </div>
+    <script>
+        function loadSection(url, btn) {
+            document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+            if(btn) btn.classList.add('active');
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    let tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    let content = tempDiv.querySelector('.main-content');
+                    document.getElementById('main-area').innerHTML = content ? content.innerHTML : html;
+                });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSection('student_dashboard_home.php', document.querySelector('.nav-btn.active'));
+        });
+    </script>
+</body>
+</html>
+            body {
+                background: linear-gradient(120deg, #1976d2 0%, #2563eb 100%);
+                min-height: 100vh;
+                font-family: 'Poppins', Arial, sans-serif;
+            }
+            .dashboard-wrapper {
+                display: flex;
+                min-height: 100vh;
+            }
+            .sidebar {
+                background: #fff;
+                min-width: 260px;
+                max-width: 300px;
+                box-shadow: 0 8px 32px rgba(21,101,192,0.10);
+                border-radius: 0 24px 24px 0;
+                padding: 32px 0 0 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .sidebar-title {
+                font-size: 1.6rem;
+                font-weight: 700;
+                color: #1976d2;
+                margin-bottom: 32px;
+            }
+            .sidebar-nav {
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+                width: 100%;
+                align-items: center;
+            }
+            .sidebar-nav a {
+                font-size: 1.08rem;
+                color: #607d8b;
+                text-decoration: none;
+                padding: 12px 32px;
+                border-radius: 10px;
+                transition: background 0.2s, color 0.2s;
+                width: 80%;
+                text-align: center;
+            }
+            .sidebar-nav a.active, .sidebar-nav a:hover {
+                background: #e3f2fd;
+                color: #1976d2;
+            }
+            .sidebar-nav a.logout {
+                color: #d32f2f;
+                margin-top: 32px;
+            }
+            .sidebar-nav a.logout:hover {
+                background: #ffebee;
+                color: #b71c1c;
+            }
+            .main-content {
+                flex: 1;
+                background: #fff;
+                border-radius: 24px;
+                margin: 32px;
+                box-shadow: 0 8px 32px rgba(21,101,192,0.10);
+                padding: 40px 48px;
+            }
+            .main-content h1 {
+                font-size: 2.2rem;
+                font-weight: 700;
+                color: #222;
+                margin-bottom: 18px;
+            }
+            .main-content p {
+                color: #607d8b;
+                font-size: 1.08rem;
+                margin-bottom: 32px;
+            }
+            .status-box {
+                background: #e3f2fd;
+                border-left: 6px solid #1976d2;
+                padding: 18px 24px;
+                border-radius: 10px;
+                margin: 24px 0;
+                color: #1976d2;
+                font-weight: 500;
+                font-size: 1.1rem;
+            }
+        </style>
+        <div class="dashboard-wrapper">
+            <div class="sidebar">
+                <div class="sidebar-title">Student Panel</div>
+                <nav class="sidebar-nav">
+                    <a href="student_dashboard.php" class="active">Dashboard</a>
+                    <a href="profile.php">My Profile</a>
+                    <a href="rooms.php">View Rooms</a>
+                    <a href="payments.php">My Payments</a>
+                    <a href="logout.php" class="logout">Logout</a>
+                </nav>
             </div>
-            
-            <div class="function-card">
-                <h3>💳 My Payments</h3>
-                <p>Check your payment history, view due amounts, and manage your financial records.</p>
-                <a href="student_payment.php" class="btn btn-primary">View Payments</a>
+            <div class="main-content">
+                <h1>Welcome, Student!</h1>
+                <p>Here you can view your profile, rooms, and payments.</p>
+                <h2 style="text-align:center;color:#222;font-size:1.5rem;margin-bottom:18px;">Your Assigned Room</h2>
+                <?php
+                require_once "config.php";
+                if (isset($_SESSION["email"])) {
+                    $student_email = $_SESSION["email"];
+                    $sql = "SELECT r.room_number, r.capacity FROM students s LEFT JOIN rooms r ON s.room_id = r.id WHERE s.email = ?";
+                    if ($stmt = $conn->prepare($sql)) {
+                        $stmt->bind_param("s", $student_email);
+                        $stmt->execute();
+                        $stmt->bind_result($room_number, $capacity);
+                        if ($stmt->fetch() && $room_number) {
+                            echo '<div class="status-box status-success">';
+                            echo '<strong>Room Number:</strong> ' . htmlspecialchars($room_number) . '<br>';
+                            echo '<strong>Capacity:</strong> ' . htmlspecialchars($capacity) . '';
+                            echo '</div>';
+                        } else {
+                            echo '<div class="status-box status-warning">';
+                            echo 'No room assigned yet. Please apply for a room through the "View Rooms" section below.';
+                            echo '</div>';
+                        }
+                        $stmt->close();
+                    }
+                }
+                ?>
             </div>
-            
-            <div class="function-card">
-                <h3>⚙️ Account Settings</h3>
-                <p>Update your account preferences, change password, and manage notification settings.</p>
-                <a href="student_settings.php" class="btn btn-primary">Open Settings</a>
-            </div>
-            
-            <div class="function-card logout-card">
-                <h3>🚪 Logout</h3>
-                <p>Safely exit your student dashboard and end your current session.</p>
-                <a href="logout.php" class="btn btn-danger">Logout Now</a>
-            </div>
+        </div>
         </div>
     </div>
 </body>

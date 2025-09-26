@@ -3,10 +3,6 @@ session_start();
 require_once "config.php";
 
 // Check if the user is already logged in
-if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true){
-    header("location: dashboard.php");
-    exit;
-}
 
 if($_SERVER["REQUEST_METHOD"] == "POST"){
     $email = $_POST['email'];

@@ -289,7 +289,7 @@ footer {
     margin-bottom: 10px;
 }
 .footer-section p, .footer-section ul, .footer-section li, .footer-section a {
-    color: #e3f2fd;
+    color: #fff;
     font-size: 1rem;
     text-decoration: none;
 }
@@ -491,7 +491,7 @@ h3 {
 
 p {
     text-align: center;
-    color: #718096;
+    color: #ffffff;
     margin-bottom: 30px;
     font-size: 1.1rem;
 }

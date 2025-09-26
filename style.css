@@ -135,8 +135,8 @@
 
 /* --- Features Section --- */
 .features {
-    background: #f4f6f8;
-    padding: 60px 0 40px 0;
+        background: #f4f6f8;
+    padding: 14px 0 10px 0;
 }
 .section-header {
     text-align: center;
@@ -189,8 +189,8 @@
 
 /* --- About Section --- */
 .about {
-    background: #fff;
-    padding: 60px 0 40px 0;
+        background: #fff;
+    padding: 14px 0 10px 0;
 }
 .about-grid {
     display: flex;
@@ -202,8 +202,18 @@
     flex: 1 1 320px;
 }
 .about-image img {
-    width: 100%;
-    max-width: 400px;
+    display: block;
+    margin: 0 auto;
+    width: 700px;
+    height: 420px;
+    object-fit: cover;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(21,101,192,0.10);
+    display: block;
+    margin: 0 auto;
+    width: 520px;
+    height: 340px;
+    object-fit: cover;
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(21,101,192,0.10);
 }

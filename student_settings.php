@@ -1,30 +1,20 @@
 <?php
 session_start();
 require_once "config.php";
-
 if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     header("location: login.php");
     exit;
 }
-
-// Check if user is admin
 if ($_SESSION["username"] === 'admin') {
     header("location: settings.php");
     exit;
 }
-
 $success_msg = "";
 $error_msg = "";
-
-// Handle form submissions
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    
-    // Update profile
     if (isset($_POST['update_profile'])) {
         $username = trim($_POST['username']);
         $email = trim($_POST['email']);
-        
-        // Update user info
         $sql = "UPDATE users SET username = ?, email = ? WHERE username = ?";
         if ($stmt = $conn->prepare($sql)) {
             $stmt->bind_param("sss", $username, $email, $_SESSION["username"]);
@@ -38,17 +28,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->close();
         }
     }
-    
-    // Change password
     if (isset($_POST['change_password'])) {
         $current_password = $_POST['current_password'];
         $new_password = $_POST['new_password'];
         $confirm_password = $_POST['confirm_password'];
-        
         if ($new_password !== $confirm_password) {
             $error_msg = "New passwords do not match.";
         } else {
-            // Verify current password
             $sql = "SELECT password FROM users WHERE username = ?";
             if ($stmt = $conn->prepare($sql)) {
                 $stmt->bind_param("s", $_SESSION["username"]);
@@ -56,7 +42,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt->bind_result($stored_password);
                 $stmt->fetch();
                 $stmt->close();
-                
                 if (md5($current_password) === $stored_password) {
                     // Update password
                     $new_password_hash = md5($new_password);

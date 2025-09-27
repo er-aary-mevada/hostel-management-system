@@ -116,22 +116,123 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #f4f6fb;
+            color: #222;
+        }
+        .main-content h1, .main-content h2, .main-content h3 {
+            color: #1976d2;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+        .rooms-table, .assigned-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .rooms-table th, .rooms-table td, .assigned-table th, .assigned-table td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 15px;
+        }
+        .rooms-table th, .assigned-table th {
+            background: #e3f2fd;
+            color: #1976d2;
+            font-weight: 500;
+        }
+        .rooms-table tr:nth-child(even), .assigned-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .status-full {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        .status-available {
+            color: #388e3c;
+            font-weight: bold;
+        }
+        .add-room-section, .assigned-rooms-list {
+            margin-bottom: 32px;
+        }
+        .form-group label {
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group input {
+            padding: 10px 14px;
+            border: 1.5px solid #bdbdbd;
+            border-radius: 5px;
+            font-size: 15px;
+            width: 100%;
+        }
+        .form-actions button, .add-btn, .save-btn, .cancel-btn, button[name="apply_room"], button[name="unassign_room"] {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-right: 8px;
+            transition: background 0.2s;
+        }
+        .form-actions button:hover, .add-btn:hover, .save-btn:hover, .cancel-btn:hover, button[name="apply_room"]:hover, button[name="unassign_room"]:hover {
+            background: #1565c0;
+        }
+        .search-box input {
+            padding: 8px 12px;
+            border: 1px solid #bdbdbd;
+            border-radius: 5px;
+            font-size: 15px;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat-box {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(21,101,192,0.08);
+            padding: 18px 24px;
+            margin-right: 18px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .stat-box i {
+            font-size: 2rem;
+            color: #1976d2;
+        }
+        .stat-info h3 {
+            margin: 0 0 6px 0;
+            font-size: 1.1rem;
+            color: #1976d2;
+        }
+        .stat-info p {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #333;
+            font-weight: 500;
+        }
+        .stats-overview {
+            display: flex;
+            gap: 18px;
+            margin-bottom: 32px;
+        }
+        @media (max-width: 900px) {
+            .stats-overview { flex-direction: column; gap: 12px; }
+            .stat-box { margin-right: 0; }
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <div class="sidebar">
-            <h2 class="sidebar-logo">HMS</h2>
-            <nav class="sidebar-nav">
-                <a href="admin_dashboard.php" class="nav-item">Dashboard</a>
-                <a href="students.php" class="nav-item">Manage Students</a>
-                <a href="rooms.php" class="nav-item active">Manage Rooms</a>
-                <a href="admin_room_requests.php" class="nav-item">Room Requests</a>
-                <a href="payments.php" class="nav-item">Payments</a>
-                <a href="settings.php" class="nav-item">Settings</a>
-                <a href="logout.php" class="nav-item logout">Logout</a>
-            </nav>
-        </div>
+        
 
         <!-- Main Content -->
         <div class="main-content">
@@ -139,6 +240,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             <!-- Add Room Form -->
             <?php if ($is_admin): ?>
+                <div class="back-button">
+                    <a href="admin_dashboard.php" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to Dashboard</a>
             <div class="add-room-section">
                 <button onclick="toggleAddForm()" class="add-btn">+ Add New Room</button>
                 <div id="addFormContainer" class="add-form" style="display: none;">

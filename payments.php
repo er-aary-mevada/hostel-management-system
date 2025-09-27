@@ -20,30 +20,11 @@ $is_admin = isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.co
 </head>
 <body>
     <div class="dashboard-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2><?php echo $is_admin ? 'Admin Panel' : 'Student Panel'; ?></h2>
-            </div>
-            <nav class="sidebar-nav">
-                <?php if ($is_admin): ?>
-                    <a href="admin_dashboard.php" class="nav-item">Dashboard</a>
-                    <a href="students.php" class="nav-item">Manage Students</a>
-                    <a href="rooms.php" class="nav-item">Manage Rooms</a>
-                    <a href="admin_room_requests.php" class="nav-item">Room Requests</a>
-                    <a href="payments.php" class="nav-item active">Payments</a>
-                    <a href="settings.php" class="nav-item">Settings</a>
-                    <a href="logout.php" class="nav-item logout">Logout</a>
-                <?php else: ?>
-                    <a href="student_dashboard.php" class="nav-item">Dashboard</a>
-                    <a href="profile.php" class="nav-item">My Profile</a>
-                    <a href="student_rooms.php" class="nav-item">View Rooms</a>
-                    <a href="student_payment.php" class="nav-item">My Payments</a>
-                    <a href="logout.php" class="nav-item logout">Logout</a>
-                <?php endif; ?>
-            </nav>
-        </div>
         <div class="main-content">
             <h1>Payments</h1>
+                    <div class="back-button">
+            <a href="admin_dashboard.php" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to Dashboard</a>
+        </div>
             <?php if ($is_admin): ?>
                 <h2>Student Payment Details</h2>
                 <table class="payments-table">

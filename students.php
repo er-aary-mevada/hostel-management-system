@@ -40,61 +40,92 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #f4f6fb;
+            color: #222;
+        }
+        .main-content h1, .main-content h3 {
+            color: #1976d2;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 15px;
+        }
+        th {
+            background: #e3f2fd;
+            color: #1976d2;
+            font-weight: 500;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .form-group label {
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group input {
+            padding: 10px 14px;
+            border: 1.5px solid #bdbdbd;
+            border-radius: 5px;
+            font-size: 15px;
+            width: 100%;
+        }
+        .form-actions button, .add-new-btn, .submit-btn, .cancel-btn, button[name="delete_student"] {
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-right: 8px;
+            transition: background 0.2s;
+        }
+        .form-actions button:hover, .add-new-btn:hover, .submit-btn:hover, .cancel-btn:hover, button[name="delete_student"]:hover {
+            background: #1565c0;
+        }
+        .back-button a {
+            background: #1976d2;
+            color: #fff;
+            border-radius: 5px;
+            padding: 8px 18px;
+            text-decoration: none;
+            font-size: 15px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        .back-button a:hover {
+            background: #1565c0;
+        }
+        @media (max-width: 900px) {
+            table { font-size: 13px; }
+            th, td { padding: 8px 10px; }
+        }
+    </style>
 </head>
 <body class="dashboard-body">
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <i class="fas fa-building"></i>
-                <h2>HMS</h2>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="dashboard.php" class="nav-item">
-                    <div class="nav-icon">
-                        <i class="fas fa-home"></i>
-                    </div>
-                    <span>Dashboard</span>
-                </a>
-                <a href="students.php" class="nav-item active">
-                    <div class="nav-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <span>Students</span>
-                </a>
-                <a href="rooms.php" class="nav-item">
-                    <div class="nav-icon">
-                        <i class="fas fa-door-open"></i>
-                    </div>
-                    <span>Rooms</span>
-                </a>
-                <a href="payments.php" class="nav-item">
-                    <div class="nav-icon">
-                        <i class="fas fa-money-bill-wave"></i>
-                    </div>
-                    <span>Payments</span>
-                </a>
-                <a href="settings.php" class="nav-item">
-                    <div class="nav-icon">
-                        <i class="fas fa-cog"></i>
-                    </div>
-                    <span>Settings</span>
-                </a>
-                <div class="sidebar-divider"></div>
-                <a href="logout.php" class="nav-item logout">
-                    <div class="nav-icon">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </div>
-                    <span>Logout</span>
-                </a>
-            </nav>
-        </div>
 
         <!-- Main Content -->
         <div class="main-content">
             <div class="dashboard-content">
                 <div class="content-header">
                     <h1>Students Management</h1>
+                     <div class ="back-button">
+                     <a href="admin_dashboard.php" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to Dashboard</a>
+                     </div>
                     <button class="add-new-btn" onclick="toggleAddForm()">
                         <i class="fas fa-plus"></i> Add New Student
                     </button>

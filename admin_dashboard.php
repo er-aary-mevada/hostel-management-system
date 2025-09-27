@@ -100,10 +100,10 @@ if($_SESSION["username"] !== 'admin'){
         <div class="sidebar">
             <div class="sidebar-title">HMS</div>
             <nav class="sidebar-nav">
-                <a href="#dashboard" class="nav-btn active" onclick="loadSection('dashboard.php', this); return false;"><i class="fas fa-home"></i> Dashboard</a>
-                <a href="#students" class="nav-btn" onclick="loadSection('students.php', this); return false;"><i class="fas fa-users"></i> Students</a>
-                <a href="#rooms" class="nav-btn" onclick="loadSection('rooms.php', this); return false;"><i class="fas fa-building"></i> Rooms</a>
-                <a href="#payments" class="nav-btn" onclick="loadSection('payments.php', this); return false;"><i class="fas fa-credit-card"></i> Payments</a>
+                <a href="admin_dashboard.php" class="nav-btn active"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="students.php" class="nav-btn"><i class="fas fa-users"></i> Students</a>
+                <a href="rooms.php" class="nav-btn"><i class="fas fa-building"></i> Rooms</a>
+                <a href="payments.php" class="nav-btn"><i class="fas fa-credit-card"></i> Payments</a>
                 <a href="admin_settings.php" class="nav-btn"><i class="fas fa-cog"></i> Settings</a>
                 <a href="logout.php" class="nav-btn logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </nav>

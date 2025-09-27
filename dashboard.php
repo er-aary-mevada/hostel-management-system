@@ -18,7 +18,7 @@ if(!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
 <body>
     <div class="dashboard-container">
         <h1>🏢 Admin Dashboard</h1>
-        <p>Welcome to the Hostel Management System. Choose a function below to manage your hostel efficiently.</p>
+        <p>Welcome to the Hostel Management System.</p>
         </div>
     </div>
 </body>

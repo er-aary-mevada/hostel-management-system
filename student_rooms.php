@@ -75,16 +75,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_room'])) {
                     echo "<td>" . htmlspecialchars($row['capacity']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                     echo "<td>";
-                    if ($row['status'] === 'Available') {
-                        $student_email = $_SESSION['email'];
+                    $status = isset($row['status']) ? $row['status'] : '';
+                    if ($status === 'Available') {
+                        $student_email = isset($_SESSION['email']) ? $_SESSION['email'] : '';
                         $sql_student = "SELECT room_id FROM students WHERE email = '" . $conn->real_escape_string($student_email) . "'";
                         $result_student = $conn->query($sql_student);
                         $student_room_id = null;
                         if ($result_student && $row_student = $result_student->fetch_assoc()) {
                             $student_room_id = $row_student['room_id'];
                         }
-                        if (!$student_room_id) {
-                            echo '<form method="post"><input type="hidden" name="room_id" value="' . $row['id'] . '"><button type="submit" name="apply_room">Apply</button></form>';
+                        if (empty($student_room_id)) {
+                            echo '<form method="post"><input type="hidden" name="room_id" value="' . htmlspecialchars($row['id']) . '"><button type="submit" name="apply_room">Apply</button></form>';
                         } else {
                             echo 'Assigned';
                         }
@@ -100,32 +101,3 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_room'])) {
         </tbody>
     </table>
 </div>
-                            echo "<td>";
-                            if ($status === 'Available') {
-                                $student_email = $_SESSION['email'];
-                                $sql_student = "SELECT room_id FROM students WHERE email = '" . $conn->real_escape_string($student_email) . "'";
-                                $result_student = $conn->query($sql_student);
-                                $student_room_id = null;
-                                if ($result_student && $row_student = $result_student->fetch_assoc()) {
-                                    $student_room_id = $row_student['room_id'];
-                                }
-                                if (!$student_room_id) {
-                                    echo '<form method="post" action="student_rooms.php" style="display:inline;"><input type="hidden" name="room_id" value="' . $row['id'] . '"><button type="submit" name="apply_room">Apply</button></form>';
-                                } else {
-                                    echo '<span>Assigned</span>';
-                                }
-                            } else {
-                                echo '<span>Full</span>';
-                            }
-                            echo "</td>";
-                            echo "</tr>";
-                        }
-                        $result->free();
-                    }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</body>
-</html>

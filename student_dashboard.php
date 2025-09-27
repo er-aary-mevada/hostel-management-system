@@ -103,9 +103,10 @@ if($_SESSION["username"] === 'admin'){
                 <a href="#profile" class="nav-btn" onclick="loadSection('profile.php', this); return false;">My Profile</a>
                 <a href="#rooms" class="nav-btn" onclick="loadSection('student_rooms.php', this); return false;">View Rooms</a>
                 <a href="#payments" class="nav-btn" onclick="loadSection('student_payment.php', this); return false;">My Payments</a>
-                <a href="#settings" class="nav-btn" onclick="loadSection('student_settings.php', this); return false;">Account Settings</a>
-                <a href="logout.php" class="nav-btn logout">Logout</a>
-            </nav>
+                   <!-- Removed Dashboard, My Profile, View Rooms, My Payments, Account Settings, Logout -->
+                   <a href="student_settings.php" class="nav-btn active" target="_blank">Account Settings</a>
+                   <a href="logout.php" class="nav-btn logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+               </nav>
         </div>
         <div class="main-content">
             <div id="main-area">

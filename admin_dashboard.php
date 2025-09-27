@@ -104,7 +104,7 @@ if($_SESSION["username"] !== 'admin'){
                 <a href="#students" class="nav-btn" onclick="loadSection('students.php', this); return false;"><i class="fas fa-users"></i> Students</a>
                 <a href="#rooms" class="nav-btn" onclick="loadSection('rooms.php', this); return false;"><i class="fas fa-building"></i> Rooms</a>
                 <a href="#payments" class="nav-btn" onclick="loadSection('payments.php', this); return false;"><i class="fas fa-credit-card"></i> Payments</a>
-                <a href="#settings" class="nav-btn" onclick="loadSection('settings.php', this); return false;"><i class="fas fa-cog"></i> Settings</a>
+                <a href="admin_settings.php" class="nav-btn"><i class="fas fa-cog"></i> Settings</a>
                 <a href="logout.php" class="nav-btn logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </nav>
         </div>

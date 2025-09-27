@@ -18,21 +18,32 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
             $stmt->store_result();
 
             if($stmt->num_rows == 1){
-                $stmt->bind_result($id, $username, $hashed_password);
+                $stmt->bind_result($id, $username, $db_password);
                 if($stmt->fetch()){
-                    if(password_verify($password, $hashed_password)){
-                        session_start();
-                        $_SESSION["loggedin"] = true;
-                        $_SESSION["id"] = $id;
-                        $_SESSION["username"] = $username;
-                        $_SESSION["email"] = $email;
-                        if ($email === 'admin1@gmail.com') {
+                    if ($email === 'admin1@gmail.com') {
+                        // Admin login: use password_verify
+                        if(password_verify($password, $db_password)){
+                            session_start();
+                            $_SESSION["loggedin"] = true;
+                            $_SESSION["id"] = $id;
+                            $_SESSION["username"] = $username;
+                            $_SESSION["email"] = $email;
                             header("location: admin_dashboard.php");
                         } else {
-                            header("location: student_dashboard.php");
+                            echo "The password you entered was not valid.";
                         }
-                    } else{
-                        echo "The password you entered was not valid.";
+                    } else {
+                        // Student login: use md5
+                        if(md5($password) === $db_password){
+                            session_start();
+                            $_SESSION["loggedin"] = true;
+                            $_SESSION["id"] = $id;
+                            $_SESSION["username"] = $username;
+                            $_SESSION["email"] = $email;
+                            header("location: student_dashboard.php");
+                        } else {
+                            echo "The password you entered was not valid.";
+                        }
                     }
                 }
             } else{

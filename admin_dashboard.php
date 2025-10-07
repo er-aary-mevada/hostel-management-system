@@ -103,6 +103,7 @@ if($_SESSION["username"] !== 'admin'){
                 <a href="admin_dashboard.php" class="nav-btn active"><i class="fas fa-home"></i> Dashboard</a>
                 <a href="students.php" class="nav-btn"><i class="fas fa-users"></i> Students</a>
                 <a href="rooms.php" class="nav-btn"><i class="fas fa-building"></i> Rooms</a>
+                <a href="admin_room_applications.php" class="nav-btn"><i class="fas fa-clipboard-list"></i> Room Applications</a>
                 <a href="payments.php" class="nav-btn"><i class="fas fa-credit-card"></i> Payments</a>
                 <a href="admin_settings.php" class="nav-btn"><i class="fas fa-cog"></i> Settings</a>
                 <a href="logout.php" class="nav-btn logout"><i class="fas fa-sign-out-alt"></i> Logout</a>

@@ -5,56 +5,85 @@ require_once "config.php";
 // Check if the user is already logged in
 
 if($_SERVER["REQUEST_METHOD"] == "POST"){
-    $email = $_POST['email'];
+    $email = trim($_POST['email']);
     $password = $_POST['password'];
 
-    $sql = "SELECT id, username, password FROM users WHERE email = ?";
+    // Validate input
+    if (empty($email) || empty($password)) {
+        $error_msg = "Please enter both email and password.";
+    } else {
+        try {
+            $sql = "SELECT id, username, password FROM users WHERE email = ?";
 
-    if($stmt = $conn->prepare($sql)){
-        $stmt->bind_param("s", $param_email);
-        $param_email = $email;
+            if($stmt = $conn->prepare($sql)){
+                $stmt->bind_param("s", $param_email);
+                $param_email = $email;
 
-        if($stmt->execute()){
-            $stmt->store_result();
+                if($stmt->execute()){
+                    $stmt->store_result();
 
-            if($stmt->num_rows == 1){
-                $stmt->bind_result($id, $username, $db_password);
-                if($stmt->fetch()){
-                    if ($email === 'admin1@gmail.com') {
-                        // Admin login: use password_verify
-                        if(password_verify($password, $db_password)){
-                            session_start();
-                            $_SESSION["loggedin"] = true;
-                            $_SESSION["id"] = $id;
-                            $_SESSION["username"] = $username;
-                            $_SESSION["email"] = $email;
-                            header("location: admin_dashboard.php");
-                        } else {
-                            echo "The password you entered was not valid.";
+                    if($stmt->num_rows == 1){
+                        $stmt->bind_result($id, $username, $db_password);
+                        if($stmt->fetch()){
+                            // Check password format and verify accordingly
+                            $password_valid = false;
+                            
+                            if ($email === 'admin1@gmail.com') {
+                                // Admin login: try password_verify first, then md5 for backward compatibility
+                                if (password_verify($password, $db_password)) {
+                                    $password_valid = true;
+                                } elseif (md5($password) === $db_password) {
+                                    $password_valid = true;
+                                    // Update to bcrypt hash for future security
+                                    $new_hash = password_hash($password, PASSWORD_DEFAULT);
+                                    $update_sql = "UPDATE users SET password = ? WHERE email = ?";
+                                    if ($update_stmt = $conn->prepare($update_sql)) {
+                                        $update_stmt->bind_param("ss", $new_hash, $email);
+                                        $update_stmt->execute();
+                                        $update_stmt->close();
+                                    }
+                                }
+                            } else {
+                                // Student login: try password_verify first (for new accounts), then md5 (for old accounts)
+                                if (password_verify($password, $db_password)) {
+                                    $password_valid = true;
+                                } elseif (md5($password) === $db_password) {
+                                    $password_valid = true;
+                                }
+                            }
+                            
+                            if ($password_valid) {
+                                session_start();
+                                $_SESSION["loggedin"] = true;
+                                $_SESSION["id"] = $id;
+                                $_SESSION["username"] = $username;
+                                $_SESSION["email"] = $email;
+                                
+                                if ($email === 'admin1@gmail.com') {
+                                    header("location: admin_dashboard.php");
+                                } else {
+                                    header("location: student_dashboard.php");
+                                }
+                                exit();
+                            } else {
+                                $error_msg = "The password you entered was not valid.";
+                            }
                         }
-                    } else {
-                        // Student login: use md5
-                        if(md5($password) === $db_password){
-                            session_start();
-                            $_SESSION["loggedin"] = true;
-                            $_SESSION["id"] = $id;
-                            $_SESSION["username"] = $username;
-                            $_SESSION["email"] = $email;
-                            header("location: student_dashboard.php");
-                        } else {
-                            echo "The password you entered was not valid.";
-                        }
+                    } else{
+                        $error_msg = "No account found with that email.";
                     }
+                } else{
+                    $error_msg = "Oops! Something went wrong. Please try again later.";
                 }
-            } else{
-                echo "No account found with that email.";
+                $stmt->close();
+            } else {
+                $error_msg = "Database error. Please try again later.";
             }
-        } else{
-            echo "Oops! Something went wrong. Please try again later.";
+        } catch (Exception $e) {
+            error_log("Login error: " . $e->getMessage());
+            $error_msg = "An error occurred. Please try again later.";
         }
-        $stmt->close();
     }
-    $conn->close();
 }
 ?>
 <!DOCTYPE html>
@@ -70,6 +99,11 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <?php if (isset($error_msg)): ?>
+        <div class="error-message" style="background: #f8d7da; color: #721c24; padding: 10px; margin: 10px; border-radius: 5px; text-align: center;">
+            <?php echo htmlspecialchars($error_msg); ?>
+        </div>
+    <?php endif; ?>
     <style>
         body {
             min-height: 100vh;

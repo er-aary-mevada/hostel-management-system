@@ -94,7 +94,7 @@ if (isset($_POST['update_profile'])) {
             <div class="page-header">
                 <h1>Admin Settings</h1>
                 <p style="color:#000;">Manage your admin profile and settings</p>
-                <a href="admin_dashboard.php" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to Dashboard</a>
+                <a href="admin_dashboard.php" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to Admin Dashboard</a>
             </div>
             <?php if (!empty($success_msg)): ?>
                 <div class="alert alert-success">

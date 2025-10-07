@@ -10,6 +10,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 
 // Determine if user is admin
 $is_admin = isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com';
+$dashboard_link = $is_admin ? 'admin_dashboard.php' : 'student_dashboard.php';
+$dashboard_title = $is_admin ? 'Admin Dashboard' : 'Student Dashboard';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($is_admin && isset($_POST['unassign_room'])) {
@@ -76,32 +78,116 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $room_id = $_POST['room_id'];
 
         // Check if the room has capacity
-        $sql_check = "SELECT capacity, current_occupancy FROM rooms WHERE id = ?";
+        $sql_check = "SELECT capacity" . 
+                     (columnExists($conn, 'rooms', 'current_occupancy') ? ", current_occupancy" : "") . 
+                     " FROM rooms WHERE id = ?";
         if ($stmt_check = $conn->prepare($sql_check)) {
             $stmt_check->bind_param("i", $room_id);
             $stmt_check->execute();
-            $stmt_check->bind_result($capacity, $current_occupancy);
-            $stmt_check->fetch();
+            $result = $stmt_check->get_result();
+            $room_data = $result->fetch_assoc();
             $stmt_check->close();
 
-            if ($current_occupancy < $capacity) {
-                $sql_assign = "UPDATE students SET room_id = ? WHERE id = ?";
-                if ($stmt_assign = $conn->prepare($sql_assign)) {
-                    $stmt_assign->bind_param("ii", $room_id, $student_id);
-                    $stmt_assign->execute();
-                    $stmt_assign->close();
+            $capacity = $room_data['capacity'];
+            $current_occupancy = safeGetColumn($room_data, 'current_occupancy', 0);
 
-                    // Update room occupancy
-                    $sql_update_occupancy = "UPDATE rooms SET current_occupancy = current_occupancy + 1 WHERE id = ?";
-                    if ($stmt_update = $conn->prepare($sql_update_occupancy)) {
-                        $stmt_update->bind_param("i", $room_id);
-                        $stmt_update->execute();
-                        $stmt_update->close();
+            if ($current_occupancy < $capacity) {
+                // Check if room_id column exists in students table
+                if (columnExists($conn, 'students', 'room_id')) {
+                    $sql_assign = "UPDATE students SET room_id = ? WHERE id = ?";
+                    if ($stmt_assign = $conn->prepare($sql_assign)) {
+                        $stmt_assign->bind_param("ii", $room_id, $student_id);
+                        $stmt_assign->execute();
+                        $stmt_assign->close();
+
+                        // Update room occupancy if column exists
+                        if (columnExists($conn, 'rooms', 'current_occupancy')) {
+                            $sql_update_occupancy = "UPDATE rooms SET current_occupancy = current_occupancy + 1 WHERE id = ?";
+                            if ($stmt_update = $conn->prepare($sql_update_occupancy)) {
+                                $stmt_update->bind_param("i", $room_id);
+                                $stmt_update->execute();
+                                $stmt_update->close();
+                            }
+                        }
                     }
+                } else {
+                    echo "<script>alert('Room assignment not available - missing database column.');</script>";
                 }
             } else {
                 echo "<script>alert('Room is full!');</script>";
             }
+        }
+    } elseif (isset($_POST['apply_room'])) {
+        // Handle student room application
+        $room_id = $_POST['room_id'];
+        $student_email = $_SESSION['email'];
+        
+        // Get student ID
+        $sql_get_student = "SELECT id FROM students WHERE email = ?";
+        if ($stmt_get_student = $conn->prepare($sql_get_student)) {
+            $stmt_get_student->bind_param("s", $student_email);
+            $stmt_get_student->execute();
+            $result_student = $stmt_get_student->get_result();
+            
+            if ($student_row = $result_student->fetch_assoc()) {
+                $student_id = $student_row['id'];
+                
+                // Check if student is already assigned to any room
+                if (columnExists($conn, 'students', 'room_id')) {
+                    $sql_check_assigned = "SELECT room_id FROM students WHERE id = ?";
+                    if ($stmt_check_assigned = $conn->prepare($sql_check_assigned)) {
+                        $stmt_check_assigned->bind_param("i", $student_id);
+                        $stmt_check_assigned->execute();
+                        $result_assigned = $stmt_check_assigned->get_result();
+                        $assigned_data = $result_assigned->fetch_assoc();
+                        
+                        if ($assigned_data && $assigned_data['room_id']) {
+                            echo "<script>alert('You are already assigned to a room!');</script>";
+                        } else {
+                            // Check room capacity
+                            $sql_check_room = "SELECT capacity" . 
+                                             (columnExists($conn, 'rooms', 'current_occupancy') ? ", current_occupancy" : "") . 
+                                             " FROM rooms WHERE id = ?";
+                            if ($stmt_check_room = $conn->prepare($sql_check_room)) {
+                                $stmt_check_room->bind_param("i", $room_id);
+                                $stmt_check_room->execute();
+                                $result_room = $stmt_check_room->get_result();
+                                $room_data = $result_room->fetch_assoc();
+                                
+                                $capacity = $room_data['capacity'];
+                                $current_occupancy = safeGetColumn($room_data, 'current_occupancy', 0);
+                                
+                                if ($current_occupancy < $capacity) {
+                                    // Assign room to student
+                                    $sql_assign = "UPDATE students SET room_id = ? WHERE id = ?";
+                                    if ($stmt_assign = $conn->prepare($sql_assign)) {
+                                        $stmt_assign->bind_param("ii", $room_id, $student_id);
+                                        $stmt_assign->execute();
+                                        
+                                        // Update room occupancy
+                                        if (columnExists($conn, 'rooms', 'current_occupancy')) {
+                                            $sql_update_occupancy = "UPDATE rooms SET current_occupancy = current_occupancy + 1 WHERE id = ?";
+                                            if ($stmt_update = $conn->prepare($sql_update_occupancy)) {
+                                                $stmt_update->bind_param("i", $room_id);
+                                                $stmt_update->execute();
+                                                $stmt_update->close();
+                                            }
+                                        }
+                                        
+                                        $stmt_assign->close();
+                                        echo "<script>alert('Room assigned successfully!'); window.location.reload();</script>";
+                                    }
+                                } else {
+                                    echo "<script>alert('Room is full!');</script>";
+                                }
+                                $stmt_check_room->close();
+                            }
+                        }
+                        $stmt_check_assigned->close();
+                    }
+                }
+            }
+            $stmt_get_student->close();
         }
     }
 }
@@ -238,10 +324,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="main-content">
             <h1>Rooms Management</h1>
             
+            <div class="back-button">
+                <a href="<?php echo $dashboard_link; ?>" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to <?php echo $dashboard_title; ?></a>
+            </div>
+            
             <!-- Add Room Form -->
             <?php if ($is_admin): ?>
-                <div class="back-button">
-                    <a href="admin_dashboard.php" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to Dashboard</a>
             <div class="add-room-section">
                 <button onclick="toggleAddForm()" class="add-btn">+ Add New Room</button>
                 <div id="addFormContainer" class="add-form" style="display: none;">
@@ -329,15 +417,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </thead>
                     <tbody>
                     <?php
-                    $sql = "SELECT * FROM rooms ORDER BY room_number";
+                    $sql = "SELECT r.*, 
+                           (SELECT COUNT(*) FROM students s WHERE s.room_id = r.id) as actual_occupancy 
+                           FROM rooms r ORDER BY r.room_number";
                     if ($result = $conn->query($sql)) {
                         while ($row = $result->fetch_assoc()) {
-                            $status = $row['current_occupancy'] >= $row['capacity'] ? 'Full' : 'Available';
+                            // Use actual count from students table for accuracy
+                            $current_occupancy = $row['actual_occupancy'];
+                            $capacity = $row['capacity'];
+                            $status = $current_occupancy >= $capacity ? 'Full' : 'Available';
                             $statusClass = $status === 'Full' ? 'status-full' : 'status-available';
+                            
+                            // Update current_occupancy in rooms table if it exists and is incorrect
+                            if (columnExists($conn, 'rooms', 'current_occupancy') && 
+                                safeGetColumn($row, 'current_occupancy', 0) != $current_occupancy) {
+                                $update_sql = "UPDATE rooms SET current_occupancy = ? WHERE id = ?";
+                                if ($update_stmt = $conn->prepare($update_sql)) {
+                                    $update_stmt->bind_param("ii", $current_occupancy, $row['id']);
+                                    $update_stmt->execute();
+                                    $update_stmt->close();
+                                }
+                            }
+                            
                             echo "<tr>";
-                            echo "<td>" . $row['room_number'] . "</td>";
-                            echo "<td>" . $row['capacity'] . "</td>";
-                            echo "<td>" . $row['current_occupancy'] . "</td>";
+                            echo "<td>" . htmlspecialchars($row['room_number']) . "</td>";
+                            echo "<td>" . $capacity . "</td>";
+                            echo "<td>" . $current_occupancy . "</td>";
                             echo "<td class='" . $statusClass . "'>" . $status . "</td>";
                             echo "<td>";
                             if ($is_admin) {
@@ -345,12 +450,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             } else {
                                 // Show assigned status if student is assigned
                                 $student_email = $_SESSION['email'];
-                                $sql_student = "SELECT room_id FROM students WHERE email = '" . $conn->real_escape_string($student_email) . "'";
-                                $result_student = $conn->query($sql_student);
-                                $student_room_id = null;
-                                if ($result_student && $row_student = $result_student->fetch_assoc()) {
-                                    $student_room_id = $row_student['room_id'];
+                                $room_id_column = columnExists($conn, 'students', 'room_id') ? 'room_id' : 'NULL as room_id';
+                                $sql_student = "SELECT " . $room_id_column . " FROM students WHERE email = ?";
+                                if ($stmt_student = $conn->prepare($sql_student)) {
+                                    $stmt_student->bind_param("s", $student_email);
+                                    $stmt_student->execute();
+                                    $result_student = $stmt_student->get_result();
+                                    $student_room_id = null;
+                                    if ($row_student = $result_student->fetch_assoc()) {
+                                        $student_room_id = safeGetColumn($row_student, 'room_id', null);
+                                    }
+                                    $stmt_student->close();
                                 }
+                                
                                 if ($student_room_id == $row['id']) {
                                     echo '<span>Assigned</span>';
                                 } else if ($status === 'Available') {

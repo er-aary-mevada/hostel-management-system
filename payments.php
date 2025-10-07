@@ -9,6 +9,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 
 // Show different content for admin and student
 $is_admin = isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com';
+$dashboard_link = $is_admin ? 'admin_dashboard.php' : 'student_dashboard.php';
+$dashboard_title = $is_admin ? 'Admin Dashboard' : 'Student Dashboard';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,7 +25,7 @@ $is_admin = isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.co
         <div class="main-content">
             <h1>Payments</h1>
                     <div class="back-button">
-            <a href="admin_dashboard.php" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to Dashboard</a>
+            <a href="<?php echo $dashboard_link; ?>" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to <?php echo $dashboard_title; ?></a>
         </div>
             <?php if ($is_admin): ?>
                 <h2>Student Payment Details</h2>
@@ -39,10 +41,18 @@ $is_admin = isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.co
                     </thead>
                     <tbody>
                         <?php
-                        $sql = "SELECT s.name, s.email, r.room_number, s.room_id, s.payment_status FROM students s LEFT JOIN rooms r ON s.room_id = r.id";
+                        // Check if payment_status column exists
+                        $payment_column_exists = columnExists($conn, 'students', 'payment_status');
+                        
+                        $sql = "SELECT s.name, s.email, r.room_number, s.room_id" . 
+                               ($payment_column_exists ? ", s.payment_status" : "") . 
+                               " FROM students s LEFT JOIN rooms r ON s.room_id = r.id";
+                               
                         if ($result = $conn->query($sql)) {
                             while ($row = $result->fetch_assoc()) {
-                                $paid = ($row['payment_status'] === 'Paid') ? 'Paid' : 'Not Paid';
+                                $paid = $payment_column_exists ? 
+                                       safeGetColumn($row, 'payment_status', 'Not Paid') : 
+                                       'Not Paid';
                                 echo "<tr>";
                                 echo "<td>" . htmlspecialchars($row['name']) . "</td>";
                                 echo "<td>" . htmlspecialchars($row['email']) . "</td>";

@@ -5,26 +5,55 @@ $username = $email = $password = "";
 $username_err = $email_err = $password_err = $success_msg = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Validate username
-    if (empty(trim($_POST["username"]))) {
-        $username_err = "Please enter a username.";
-    } else {
-        $username = trim($_POST["username"]);
-    }
-    // Validate email
-    if (empty(trim($_POST["email"]))) {
-        $email_err = "Please enter an email.";
-    } else {
-        $email = trim($_POST["email"]);
-    }
-    // Validate password
-    if (empty(trim($_POST["password"]))) {
-        $password_err = "Please enter a password.";
-    } elseif (strlen(trim($_POST["password"])) < 6) {
-        $password_err = "Password must have at least 6 characters.";
-    } else {
-        $hashed_password = password_hash(trim($_POST["password"]), PASSWORD_DEFAULT);
-    }
+    try {
+        // Validate username
+        if (empty(trim($_POST["username"]))) {
+            $username_err = "Please enter a username.";
+        } else {
+            $username = trim($_POST["username"]);
+            
+            // Check if username already exists
+            $check_username_sql = "SELECT id FROM users WHERE username = ?";
+            if ($check_stmt = $conn->prepare($check_username_sql)) {
+                $check_stmt->bind_param("s", $username);
+                $check_stmt->execute();
+                $check_stmt->store_result();
+                
+                if ($check_stmt->num_rows > 0) {
+                    $username_err = "This username is already taken. Please choose a different one.";
+                }
+                $check_stmt->close();
+            }
+        }
+        
+        // Validate email
+        if (empty(trim($_POST["email"]))) {
+            $email_err = "Please enter an email.";
+        } else {
+            $email = trim($_POST["email"]);
+            
+            // Check if email already exists
+            $check_email_sql = "SELECT id FROM users WHERE email = ?";
+            if ($check_stmt = $conn->prepare($check_email_sql)) {
+                $check_stmt->bind_param("s", $email);
+                $check_stmt->execute();
+                $check_stmt->store_result();
+                
+                if ($check_stmt->num_rows > 0) {
+                    $email_err = "This email is already registered. Please use a different email or <a href='login.php'>login</a>.";
+                }
+                $check_stmt->close();
+            }
+        }
+        
+        // Validate password
+        if (empty(trim($_POST["password"]))) {
+            $password_err = "Please enter a password.";
+        } elseif (strlen(trim($_POST["password"])) < 6) {
+            $password_err = "Password must have at least 6 characters.";
+        } else {
+            $hashed_password = password_hash(trim($_POST["password"]), PASSWORD_DEFAULT);
+        }
 
         // If no errors, insert into database
         if (empty($username_err) && empty($email_err) && empty($password_err)) {
@@ -35,18 +64,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $stmt->close();
                     // If not admin, also add to students table
                     if ($email !== 'admin1@gmail.com') {
-                        $sql_student = "INSERT INTO students (name, email) VALUES (?, ?)";
-                        if ($stmt_student = $conn->prepare($sql_student)) {
-                            $stmt_student->bind_param("ss", $username, $email);
-                            $stmt_student->execute();
-                            $stmt_student->close();
+                        // Check if student already exists before adding
+                        $check_student_sql = "SELECT id FROM students WHERE email = ?";
+                        if ($check_student_stmt = $conn->prepare($check_student_sql)) {
+                            $check_student_stmt->bind_param("s", $email);
+                            $check_student_stmt->execute();
+                            $check_student_stmt->store_result();
+                            
+                            if ($check_student_stmt->num_rows == 0) {
+                                $sql_student = "INSERT INTO students (name, email) VALUES (?, ?)";
+                                if ($stmt_student = $conn->prepare($sql_student)) {
+                                    $stmt_student->bind_param("ss", $username, $email);
+                                    $stmt_student->execute();
+                                    $stmt_student->close();
+                                }
+                            }
+                            $check_student_stmt->close();
                         }
                     }
                     $success_msg = "Account created successfully! You can now <a href='login.php'>login</a>.";
                 } else {
-                    $success_msg = "Error: Could not create account.";
+                    throw new Exception("Could not create account. Please try again.");
                 }
+            } else {
+                throw new Exception("Database error occurred.");
             }
+        }
+    } catch (Exception $e) {
+        error_log("Signup error: " . $e->getMessage());
+        $success_msg = "Error: " . $e->getMessage();
     }
 }
 ?>

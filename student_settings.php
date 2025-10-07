@@ -90,7 +90,7 @@ $success_msg = "";
                     <h1>Student Settings</h1>
                     <p style="color:#000;">Manage your profile and password</p>
                     <a href="student_dashboard.php" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">
-                        &larr; Back to Dashboard
+                        &larr; Back to Student Dashboard
                     </a>
                 </div>
                 <?php if (!empty($success_msg)): ?>

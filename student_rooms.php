@@ -12,48 +12,91 @@ if (isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com') {
     header("location: rooms.php");
     exit;
 }
-
-// Handle room application
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_room'])) {
-    $room_id = $_POST['room_id'];
-    $student_email = $_SESSION['email'];
-    $sql_student = "SELECT id, room_id FROM students WHERE email = ?";
-    if ($stmt_student = $conn->prepare($sql_student)) {
-        $stmt_student->bind_param("s", $student_email);
-        $stmt_student->execute();
-        $stmt_student->bind_result($student_id, $current_room_id);
-        $found = $stmt_student->fetch();
-        $stmt_student->close();
-        if (!$found || !$student_id) {
-                echo "<script>alert('Student record not found. Please contact admin.');</script>";
-            } else if ($current_room_id) {
-                echo "<script>alert('You are already assigned to a room.');</script>";
-            } else {
-                $sql_check_req = "SELECT id FROM room_requests WHERE student_id = ? AND status = 'pending'";
-                if ($stmt_check_req = $conn->prepare($sql_check_req)) {
-                    $stmt_check_req->bind_param("i", $student_id);
-                    $stmt_check_req->execute();
-                    $stmt_check_req->store_result();
-                    if ($stmt_check_req->num_rows > 0) {
-                        echo "<script>alert('You already have a pending room request.');</script>";
-                    } else {
-                        $sql_insert = "INSERT INTO room_requests (student_id, room_id, status) VALUES (?, ?, 'pending')";
-                        if ($stmt_insert = $conn->prepare($sql_insert)) {
-                            $stmt_insert->bind_param("ii", $student_id, $room_id);
-                            $stmt_insert->execute();
-                            $stmt_insert->close();
-                            echo "<script>alert('Room request submitted! Wait for admin approval.');</script>";
-                        }
-                    }
-                    $stmt_check_req->close();
-                }
-            }
-        } else {
-            echo "<script>alert('Database error. Please contact admin.');</script>";
+?>
+<div class="main-content">
+    <style>
+        .main-content {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-    }
-    ?>
-<div>
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background: #5a6268;
+            color: white;
+            text-decoration: none;
+        }
+        .main-content h1 {
+            color: #1976d2;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .main-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .main-content table th,
+        .main-content table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .main-content table th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+        .main-content table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .apply-btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .apply-btn:hover {
+            background: #1565c0;
+        }
+        .status-full {
+            color: red;
+            font-weight: bold;
+        }
+        .status-assigned {
+            color: green;
+            font-weight: bold;
+        }
+        .status-unavailable {
+            color: gray;
+        }
+        .status-pending {
+            color: orange;
+            font-weight: bold;
+        }
+        .status-rejected {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+    <a href="student_dashboard.php" class="back-btn">← Back to Dashboard</a>
     <h1>Available Rooms</h1>
     <table>
         <thead>
@@ -66,33 +109,90 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_room'])) {
         </thead>
         <tbody>
             <?php
-            $sql = "SELECT id, room_number, capacity, status FROM rooms";
+            // Check if current student is already assigned to any room first
+            $student_email = isset($_SESSION['email']) ? $_SESSION['email'] : '';
+            $sql_student = "SELECT id, room_id FROM students WHERE email = ?";
+            $student_room_id = null;
+            $student_id = null;
+            if ($stmt_student = $conn->prepare($sql_student)) {
+                $stmt_student->bind_param("s", $student_email);
+                $stmt_student->execute();
+                $result_student = $stmt_student->get_result();
+                if ($row_student = $result_student->fetch_assoc()) {
+                    $student_room_id = $row_student['room_id'];
+                    $student_id = $row_student['id'];
+                }
+                $stmt_student->close();
+            }
+            
+            // Check if student has any pending application
+            $pending_application = null;
+            if ($student_id) {
+                // Check if room_applications table exists
+                $table_check = $conn->query("SHOW TABLES LIKE 'room_applications'");
+                if ($table_check && $table_check->num_rows > 0) {
+                    $sql_app = "SELECT room_id, status FROM room_applications WHERE student_id = ?";
+                    if ($stmt_app = $conn->prepare($sql_app)) {
+                        $stmt_app->bind_param("i", $student_id);
+                        $stmt_app->execute();
+                        $result_app = $stmt_app->get_result();
+                        if ($row_app = $result_app->fetch_assoc()) {
+                            $pending_application = $row_app;
+                        }
+                        $stmt_app->close();
+                    }
+                } else {
+                    // Table doesn't exist - create it or show message
+                    echo "<div style='background: #fff3cd; color: #856404; padding: 10px; margin: 10px 0; border-radius: 5px;'>
+                          ⚠️ Room applications feature is being set up. Please contact admin or run setup.
+                          </div>";
+                }
+            }
+            
+            // Get rooms with actual occupancy calculation
+            $sql = "SELECT r.id, r.room_number, r.capacity,
+                           (SELECT COUNT(*) FROM students s WHERE s.room_id = r.id) as current_occupancy
+                    FROM rooms r ORDER BY r.room_number";
             $result = $conn->query($sql);
             if ($result) {
                 while ($row = $result->fetch_assoc()) {
+                    $current_occupancy = $row['current_occupancy'];
+                    $capacity = $row['capacity'];
+                    
+                    // Determine status based on room capacity only
+                    if ($current_occupancy >= $capacity) {
+                        $status = 'Full';
+                        $status_class = 'status-full';
+                    } else {
+                        $status = 'Available';
+                        $status_class = '';
+                    }
+                    
+                    // Determine action based on student assignment and application status
+                    if ($student_room_id == $row['id']) {
+                        $action = '<span class="status-assigned">Assigned</span>';
+                    } else if ($student_room_id) {
+                        $action = '<span class="status-unavailable">Already Assigned</span>';
+                    } else if ($pending_application && $pending_application['room_id'] == $row['id']) {
+                        // Student has application for this room
+                        if ($pending_application['status'] == 'pending') {
+                            $action = '<span class="status-pending">Applied - Pending</span>';
+                        } else if ($pending_application['status'] == 'rejected') {
+                            $action = '<span class="status-rejected">Application Rejected</span>';
+                        }
+                    } else if ($pending_application && $pending_application['status'] == 'pending') {
+                        $action = '<span class="status-unavailable">Application Pending</span>';
+                    } else if ($current_occupancy >= $capacity) {
+                        $action = '<span class="status-full">Full</span>';
+                    } else {
+                        $action = '<button onclick="applyForRoom(' . htmlspecialchars($row['id']) . ')" class="apply-btn">Apply</button>';
+                    }
+                    
                     echo "<tr>";
                     echo "<td>" . htmlspecialchars($row['room_number']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['capacity']) . "</td>";
-                    echo "<td>" . htmlspecialchars($row['status']) . "</td>";
-                    echo "<td>";
-                    $status = isset($row['status']) ? $row['status'] : '';
-                    if ($status === 'Available') {
-                        $student_email = isset($_SESSION['email']) ? $_SESSION['email'] : '';
-                        $sql_student = "SELECT room_id FROM students WHERE email = '" . $conn->real_escape_string($student_email) . "'";
-                        $result_student = $conn->query($sql_student);
-                        $student_room_id = null;
-                        if ($result_student && $row_student = $result_student->fetch_assoc()) {
-                            $student_room_id = $row_student['room_id'];
-                        }
-                        if (empty($student_room_id)) {
-                            echo '<form method="post"><input type="hidden" name="room_id" value="' . htmlspecialchars($row['id']) . '"><button type="submit" name="apply_room">Apply</button></form>';
-                        } else {
-                            echo 'Assigned';
-                        }
-                    } else {
-                        echo 'Full';
-                    }
-                    echo "</td>";
+                    echo "<td><span class='$status_class'>" . htmlspecialchars($status) . "</span></td>";
+                    echo "<td>$action</td>";
                     echo "</tr>";
                 }
                 $result->free();
@@ -101,3 +201,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_room'])) {
         </tbody>
     </table>
 </div>
+
+<script>
+function applyForRoom(roomId) {
+    if (confirm('Are you sure you want to apply for this room?')) {
+        fetch('apply_room.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'room_id=' + roomId + '&apply_room=1'
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                // Reload the rooms section
+                if (typeof loadSection === 'function') {
+                    loadSection('student_rooms.php', document.querySelector('.nav-btn[onclick*="student_rooms"]'));
+                } else {
+                    // Fallback for direct access
+                    location.reload();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+</script>

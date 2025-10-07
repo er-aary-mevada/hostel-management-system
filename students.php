@@ -7,26 +7,69 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if (isset($_POST['add_student'])) {
-        $name = $_POST['name'];
-        $phone = $_POST['phone'];
-        $email = $_POST['email'];
+// Determine user type for consistent navigation
+$is_admin = isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com';
+$dashboard_link = $is_admin ? 'admin_dashboard.php' : 'student_dashboard.php';
+$dashboard_title = $is_admin ? 'Admin Dashboard' : 'Student Dashboard';
 
-        $sql = "INSERT INTO students (name, phone, email) VALUES (?, ?, ?)";
-        if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("sss", $name, $phone, $email);
-            $stmt->execute();
-            $stmt->close();
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    try {
+        if (isset($_POST['add_student'])) {
+            $name = trim($_POST['name']);
+            $phone = trim($_POST['phone']);
+            $email = trim($_POST['email']);
+
+            // Validate input
+            if (empty($name) || empty($email)) {
+                throw new Exception("Name and email are required fields.");
+            }
+
+            // Check for duplicate email
+            $check_sql = "SELECT id FROM students WHERE email = ?";
+            if ($check_stmt = $conn->prepare($check_sql)) {
+                $check_stmt->bind_param("s", $email);
+                $check_stmt->execute();
+                $check_stmt->store_result();
+                
+                if ($check_stmt->num_rows > 0) {
+                    throw new Exception("A student with this email already exists.");
+                }
+                $check_stmt->close();
+            }
+
+            $sql = "INSERT INTO students (name, phone, email) VALUES (?, ?, ?)";
+            if ($stmt = $conn->prepare($sql)) {
+                $stmt->bind_param("sss", $name, $phone, $email);
+                if (!$stmt->execute()) {
+                    throw new Exception("Failed to add student.");
+                }
+                $stmt->close();
+                $success_msg = "Student added successfully!";
+            } else {
+                throw new Exception("Database error occurred.");
+            }
+        } elseif (isset($_POST['delete_student'])) {
+            $id = (int)$_POST['student_id'];
+            
+            if ($id <= 0) {
+                throw new Exception("Invalid student ID.");
+            }
+
+            $sql = "DELETE FROM students WHERE id = ?";
+            if ($stmt = $conn->prepare($sql)) {
+                $stmt->bind_param("i", $id);
+                if (!$stmt->execute()) {
+                    throw new Exception("Failed to delete student.");
+                }
+                $stmt->close();
+                $success_msg = "Student deleted successfully!";
+            } else {
+                throw new Exception("Database error occurred.");
+            }
         }
-    } elseif (isset($_POST['delete_student'])) {
-        $id = $_POST['student_id'];
-        $sql = "DELETE FROM students WHERE id = ?";
-        if ($stmt = $conn->prepare($sql)) {
-            $stmt->bind_param("i", $id);
-            $stmt->execute();
-            $stmt->close();
-        }
+    } catch (Exception $e) {
+        error_log("Students.php error: " . $e->getMessage());
+        $error_msg = $e->getMessage();
     }
 }
 ?>
@@ -124,12 +167,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="content-header">
                     <h1>Students Management</h1>
                      <div class ="back-button">
-                     <a href="admin_dashboard.php" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to Dashboard</a>
+                     <a href="<?php echo $dashboard_link; ?>" class="btn" style="margin-top:10px;margin-bottom:20px;display:inline-block;">&larr; Back to <?php echo $dashboard_title; ?></a>
                      </div>
                     <button class="add-new-btn" onclick="toggleAddForm()">
                         <i class="fas fa-plus"></i> Add New Student
                     </button>
                 </div>
+
+                <?php if (isset($success_msg)): ?>
+                    <div class="success-message" style="background: #d4edda; color: #155724; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                        <?php echo htmlspecialchars($success_msg); ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (isset($error_msg)): ?>
+                    <div class="error-message" style="background: #f8d7da; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                        <?php echo htmlspecialchars($error_msg); ?>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Add Student Form -->
                 <div class="add-form-container" id="addFormContainer">

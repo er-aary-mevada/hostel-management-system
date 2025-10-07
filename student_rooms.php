@@ -216,13 +216,7 @@ function applyForRoom(roomId) {
         .then(data => {
             alert(data.message);
             if (data.success) {
-                // Reload the rooms section
-                if (typeof loadSection === 'function') {
-                    loadSection('student_rooms.php', document.querySelector('.nav-btn[onclick*="student_rooms"]'));
-                } else {
-                    // Fallback for direct access
-                    location.reload();
-                }
+                location.reload();
             }
         })
         .catch(error => {

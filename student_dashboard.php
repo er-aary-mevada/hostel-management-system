@@ -100,7 +100,7 @@ if($_SESSION["username"] === 'admin'){
             <div class="sidebar-title">Student Panel</div>
             <nav class="sidebar-nav">
                 <a href="#dashboard" class="nav-btn active" onclick="loadSection('student_dashboard_home.php', this); return false;">Dashboard</a>
-                <a href="#profile" class="nav-btn" onclick="loadSection('profile.php', this); return false;">My Profile</a>
+                <a href="#profile" class="nav-btn" onclick="loadSection('student_profile.php', this); return false;">My Profile</a>
                 <a href="student_rooms.php" class="nav-btn">View Rooms</a>
                 <a href="#payments" class="nav-btn" onclick="loadSection('student_payment.php', this); return false;">My Payments</a>
                 <a href="student_settings.php" class="nav-btn">Account Settings</a>

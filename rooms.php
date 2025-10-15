@@ -122,8 +122,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $room_id = $_POST['room_id'];
         $student_email = $_SESSION['email'];
         
-        // Get student ID
-        $sql_get_student = "SELECT id FROM students WHERE email = ?";
+        // Get student ID by joining with users table
+        $sql_get_student = "SELECT s.id FROM students s 
+                            LEFT JOIN users u ON s.user_id = u.id 
+                            WHERE u.email = ?";
         if ($stmt_get_student = $conn->prepare($sql_get_student)) {
             $stmt_get_student->bind_param("s", $student_email);
             $stmt_get_student->execute();
@@ -451,7 +453,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 // Show assigned status if student is assigned
                                 $student_email = $_SESSION['email'];
                                 $room_id_column = columnExists($conn, 'students', 'room_id') ? 'room_id' : 'NULL as room_id';
-                                $sql_student = "SELECT " . $room_id_column . " FROM students WHERE email = ?";
+                                $sql_student = "SELECT s." . $room_id_column . " FROM students s 
+                                                LEFT JOIN users u ON s.user_id = u.id 
+                                                WHERE u.email = ?";
                                 if ($stmt_student = $conn->prepare($sql_student)) {
                                     $stmt_student->bind_param("s", $student_email);
                                     $stmt_student->execute();

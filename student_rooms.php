@@ -111,7 +111,9 @@ if (isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com') {
             <?php
             // Check if current student is already assigned to any room first
             $student_email = isset($_SESSION['email']) ? $_SESSION['email'] : '';
-            $sql_student = "SELECT id, room_id FROM students WHERE email = ?";
+            $sql_student = "SELECT s.id, s.room_id FROM students s 
+                            LEFT JOIN users u ON s.user_id = u.id 
+                            WHERE u.email = ?";
             $student_room_id = null;
             $student_id = null;
             if ($stmt_student = $conn->prepare($sql_student)) {

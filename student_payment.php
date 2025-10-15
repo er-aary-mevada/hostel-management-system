@@ -5,7 +5,7 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     header("location: index.html");
     exit;
 }
-if (isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com') {
+if (isset($_SESSION["role"]) && $_SESSION["role"] === 'admin') {
     header("location: admin_dashboard.php");
     exit;
 }
@@ -14,7 +14,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['pay'])) {
     $success = true;
     if (isset($_SESSION['email'])) {
         $student_email = $_SESSION['email'];
-        $sql = "UPDATE students SET payment_status = 'Paid' WHERE email = ?";
+        $sql = "UPDATE students s 
+                JOIN users u ON s.user_id = u.id 
+                SET s.payment_status = 'Paid' 
+                WHERE u.email = ?";
         if ($stmt = $conn->prepare($sql)) {
             $stmt->bind_param("s", $student_email);
             $stmt->execute();

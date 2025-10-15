@@ -57,31 +57,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // If no errors, insert into database
         if (empty($username_err) && empty($email_err) && empty($password_err)) {
-            $sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+            $sql = "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'student')";
             if ($stmt = $conn->prepare($sql)) {
                 $stmt->bind_param("sss", $username, $email, $hashed_password);
                 if ($stmt->execute()) {
+                    $user_id = $conn->insert_id; // Get the newly created user ID
                     $stmt->close();
-                    // If not admin, also add to students table
-                    if ($email !== 'admin1@gmail.com') {
-                        // Check if student already exists before adding
-                        $check_student_sql = "SELECT id FROM students WHERE email = ?";
-                        if ($check_student_stmt = $conn->prepare($check_student_sql)) {
-                            $check_student_stmt->bind_param("s", $email);
-                            $check_student_stmt->execute();
-                            $check_student_stmt->store_result();
-                            
-                            if ($check_student_stmt->num_rows == 0) {
-                                $sql_student = "INSERT INTO students (name, email) VALUES (?, ?)";
-                                if ($stmt_student = $conn->prepare($sql_student)) {
-                                    $stmt_student->bind_param("ss", $username, $email);
-                                    $stmt_student->execute();
-                                    $stmt_student->close();
-                                }
-                            }
-                            $check_student_stmt->close();
-                        }
+                    
+                    // Add to students table with user_id reference
+                    $sql_student = "INSERT INTO students (user_id, name) VALUES (?, ?)";
+                    if ($stmt_student = $conn->prepare($sql_student)) {
+                        $stmt_student->bind_param("is", $user_id, $username);
+                        $stmt_student->execute();
+                        $stmt_student->close();
                     }
+                    
                     $success_msg = "Account created successfully! You can now <a href='login.php'>login</a>.";
                 } else {
                     throw new Exception("Could not create account. Please try again.");

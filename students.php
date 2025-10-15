@@ -24,27 +24,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 throw new Exception("Name and email are required fields.");
             }
 
-            // Check for duplicate email
-            $check_sql = "SELECT id FROM students WHERE email = ?";
+            // Check for duplicate email in users table
+            $check_sql = "SELECT id FROM users WHERE email = ?";
             if ($check_stmt = $conn->prepare($check_sql)) {
                 $check_stmt->bind_param("s", $email);
                 $check_stmt->execute();
                 $check_stmt->store_result();
                 
                 if ($check_stmt->num_rows > 0) {
-                    throw new Exception("A student with this email already exists.");
+                    throw new Exception("A user with this email already exists.");
                 }
                 $check_stmt->close();
             }
 
-            $sql = "INSERT INTO students (name, phone, email) VALUES (?, ?, ?)";
-            if ($stmt = $conn->prepare($sql)) {
-                $stmt->bind_param("sss", $name, $phone, $email);
-                if (!$stmt->execute()) {
-                    throw new Exception("Failed to add student.");
+            // Insert into users table first
+            $sql_user = "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'student')";
+            $default_password = password_hash('password123', PASSWORD_DEFAULT); // Default password
+            if ($stmt_user = $conn->prepare($sql_user)) {
+                $stmt_user->bind_param("sss", $name, $email, $default_password);
+                if (!$stmt_user->execute()) {
+                    throw new Exception("Failed to create user account.");
                 }
-                $stmt->close();
-                $success_msg = "Student added successfully!";
+                $user_id = $conn->insert_id;
+                $stmt_user->close();
+                
+                // Then insert into students table with user_id
+                $sql = "INSERT INTO students (user_id, name, phone) VALUES (?, ?, ?)";
+                if ($stmt = $conn->prepare($sql)) {
+                    $stmt->bind_param("iss", $user_id, $name, $phone);
+                    if (!$stmt->execute()) {
+                        throw new Exception("Failed to add student.");
+                    }
+                    $stmt->close();
+                    $success_msg = "Student added successfully! Default password: password123";
+                } else {
+                    throw new Exception("Database error occurred.");
+                }
             } else {
                 throw new Exception("Database error occurred.");
             }
@@ -228,14 +243,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </thead>
             <tbody>
                 <?php
-                $sql = "SELECT s.id, s.name, s.phone, s.email, r.room_number FROM students s LEFT JOIN rooms r ON s.room_id = r.id";
+                $sql = "SELECT s.id, s.name, s.phone, u.email, r.room_number 
+                        FROM students s 
+                        LEFT JOIN users u ON s.user_id = u.id 
+                        LEFT JOIN rooms r ON s.room_id = r.id";
                 if ($result = $conn->query($sql)) {
                     while ($row = $result->fetch_assoc()) {
                         echo "<tr>";
                         echo "<td>" . $row['id'] . "</td>";
                         echo "<td>" . $row['name'] . "</td>";
-                        echo "<td>" . $row['phone'] . "</td>";
-                        echo "<td>" . $row['email'] . "</td>";
+                        echo "<td>" . ($row['phone'] ? $row['phone'] : 'N/A') . "</td>";
+                        echo "<td>" . ($row['email'] ? $row['email'] : 'N/A') . "</td>";
                         echo "<td>" . ($row['room_number'] ? $row['room_number'] : 'Not Assigned') . "</td>";
                         echo '<td>
                                 <form action="students.php" method="post" style="display:inline;">

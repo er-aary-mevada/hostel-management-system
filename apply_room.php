@@ -10,8 +10,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
-// Only allow non-admins
-if (isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com') {
+// Only allow non-admins (students)
+if (isset($_SESSION["role"]) && $_SESSION["role"] === 'admin') {
     echo json_encode(['success' => false, 'message' => 'Access denied.']);
     exit;
 }
@@ -21,8 +21,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_room'])) {
     $room_id = $_POST['room_id'];
     $student_email = $_SESSION['email'];
     
-    // Get student info
-    $sql_student = "SELECT id, room_id FROM students WHERE email = ?";
+    // Get student info by joining with users table
+    $sql_student = "SELECT s.id, s.room_id FROM students s 
+                    LEFT JOIN users u ON s.user_id = u.id 
+                    WHERE u.email = ?";
     if ($stmt_student = $conn->prepare($sql_student)) {
         $stmt_student->bind_param("s", $student_email);
         $stmt_student->execute();

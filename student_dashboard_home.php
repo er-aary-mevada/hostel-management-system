@@ -7,7 +7,11 @@
     session_start();
     if (isset($_SESSION["email"])) {
         $student_email = $_SESSION["email"];
-        $sql = "SELECT r.room_number, r.capacity FROM students s LEFT JOIN rooms r ON s.room_id = r.id WHERE s.email = ?";
+        $sql = "SELECT r.room_number, r.capacity 
+                FROM students s 
+                LEFT JOIN users u ON s.user_id = u.id 
+                LEFT JOIN rooms r ON s.room_id = r.id 
+                WHERE u.email = ?";
         if ($stmt = $conn->prepare($sql)) {
             $stmt->bind_param("s", $student_email);
             $stmt->execute();

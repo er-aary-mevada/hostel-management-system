@@ -13,7 +13,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
         $error_msg = "Please enter both email and password.";
     } else {
         try {
-            $sql = "SELECT id, username, password FROM users WHERE email = ?";
+            $sql = "SELECT id, username, password, role FROM users WHERE email = ?";
 
             if($stmt = $conn->prepare($sql)){
                 $stmt->bind_param("s", $param_email);
@@ -23,12 +23,12 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                     $stmt->store_result();
 
                     if($stmt->num_rows == 1){
-                        $stmt->bind_result($id, $username, $db_password);
+                        $stmt->bind_result($id, $username, $db_password, $role);
                         if($stmt->fetch()){
                             // Check password format and verify accordingly
                             $password_valid = false;
                             
-                            if ($email === 'admin1@gmail.com') {
+                            if ($role === 'admin') {
                                 // Admin login: try password_verify first, then md5 for backward compatibility
                                 if (password_verify($password, $db_password)) {
                                     $password_valid = true;
@@ -58,8 +58,9 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                                 $_SESSION["id"] = $id;
                                 $_SESSION["username"] = $username;
                                 $_SESSION["email"] = $email;
+                                $_SESSION["role"] = $role;
                                 
-                                if ($email === 'admin1@gmail.com') {
+                                if ($role === 'admin') {
                                     header("location: admin_dashboard.php");
                                 } else {
                                     header("location: student_dashboard.php");

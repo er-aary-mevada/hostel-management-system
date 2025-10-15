@@ -1,7 +1,8 @@
 <?php
 // Navigation consistency helper
 function getNavigationInfo($session_data) {
-    $is_admin = isset($session_data["email"]) && $session_data["email"] === 'admin1@gmail.com';
+    $is_admin = (isset($session_data["username"]) && $session_data["username"] === 'admin') || 
+                (isset($session_data["email"]) && $session_data["email"] === 'admin1@gmail.com');
     
     return [
         'is_admin' => $is_admin,

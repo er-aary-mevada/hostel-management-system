@@ -8,7 +8,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 }
 
 // Determine user type for consistent navigation
-$is_admin = isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com';
+$is_admin = (isset($_SESSION["username"]) && $_SESSION["username"] === 'admin') || 
+            (isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com');
 $dashboard_link = $is_admin ? 'admin_dashboard.php' : 'student_dashboard.php';
 $dashboard_title = $is_admin ? 'Admin Dashboard' : 'Student Dashboard';
 

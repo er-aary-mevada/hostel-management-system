@@ -7,8 +7,9 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
-// Only allow non-admins
-if (isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com') {
+// Only allow non-admins (students)
+if ((isset($_SESSION["username"]) && $_SESSION["username"] === 'admin') || 
+    (isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com')) {
     header("location: rooms.php");
     exit;
 }

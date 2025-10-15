@@ -8,7 +8,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 }
 
 // Show different content for admin and student
-$is_admin = isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com';
+$is_admin = (isset($_SESSION["username"]) && $_SESSION["username"] === 'admin') || 
+            (isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com');
 $dashboard_link = $is_admin ? 'admin_dashboard.php' : 'student_dashboard.php';
 $dashboard_title = $is_admin ? 'Admin Dashboard' : 'Student Dashboard';
 ?>
@@ -44,9 +45,11 @@ $dashboard_title = $is_admin ? 'Admin Dashboard' : 'Student Dashboard';
                         // Check if payment_status column exists
                         $payment_column_exists = columnExists($conn, 'students', 'payment_status');
                         
-                        $sql = "SELECT s.name, s.email, r.room_number, s.room_id" . 
+                        $sql = "SELECT s.name, u.email, r.room_number, s.room_id" . 
                                ($payment_column_exists ? ", s.payment_status" : "") . 
-                               " FROM students s LEFT JOIN rooms r ON s.room_id = r.id";
+                               " FROM students s 
+                               LEFT JOIN users u ON s.user_id = u.id
+                               LEFT JOIN rooms r ON s.room_id = r.id";
                                
                         if ($result = $conn->query($sql)) {
                             while ($row = $result->fetch_assoc()) {

@@ -8,10 +8,18 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
-// Determine if user is admin
-$is_admin = isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com';
-$dashboard_link = $is_admin ? 'admin_dashboard.php' : 'student_dashboard.php';
-$dashboard_title = $is_admin ? 'Admin Dashboard' : 'Student Dashboard';
+// Check if user is admin - ADMIN ONLY ACCESS
+$is_admin = (isset($_SESSION["username"]) && $_SESSION["username"] === 'admin') || 
+            (isset($_SESSION["email"]) && $_SESSION["email"] === 'admin1@gmail.com');
+
+// Redirect non-admin users to student dashboard
+if (!$is_admin) {
+    header("location: student_rooms.php");
+    exit;
+}
+
+$dashboard_link = 'admin_dashboard.php';
+$dashboard_title = 'Admin Dashboard';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($is_admin && isset($_POST['unassign_room'])) {
@@ -34,8 +42,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     if ($is_admin && isset($_POST['add_room'])) {
         $room_number = isset($_POST['room_number']) ? $_POST['room_number'] : '';
+        $room_type = isset($_POST['room_type']) ? $_POST['room_type'] : '';
         $capacity = isset($_POST['capacity']) ? $_POST['capacity'] : '';
-        if ($room_number !== '' && $capacity !== '') {
+        if ($room_number !== '' && $room_type !== '' && $capacity !== '') {
             // Check for duplicate room number
             $sql_check = "SELECT id FROM rooms WHERE room_number = ?";
             if ($stmt_check = $conn->prepare($sql_check)) {
@@ -45,9 +54,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if ($stmt_check->num_rows > 0) {
                     echo "<script>alert('Room number already exists. Please use a unique room number.');</script>";
                 } else {
-                    $sql = "INSERT INTO rooms (room_number, capacity) VALUES (?, ?)";
+                    $sql = "INSERT INTO rooms (room_number, room_type, capacity) VALUES (?, ?, ?)";
                     if ($stmt = $conn->prepare($sql)) {
-                        $stmt->bind_param("si", $room_number, $capacity);
+                        $stmt->bind_param("ssi", $room_number, $room_type, $capacity);
                         $stmt->execute();
                         $stmt->close();
                     }
@@ -315,6 +324,93 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             .stats-overview { flex-direction: column; gap: 12px; }
             .stat-box { margin-right: 0; }
         }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            animation: slideDown 0.3s;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e3f2fd;
+            padding-bottom: 15px;
+        }
+        .modal-header h2 {
+            color: #1976d2;
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .close:hover {
+            color: #d32f2f;
+        }
+        .modal-body {
+            padding: 10px 0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .students-list {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .students-list h4 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+        .student-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #fff;
+            border-radius: 5px;
+            border-left: 3px solid #1976d2;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -331,9 +427,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
             
             <!-- Add Room Form -->
-            <?php if ($is_admin): ?>
             <div class="add-room-section">
-                <button onclick="toggleAddForm()" class="add-btn">+ Add New Room</button>
+                <button onclick="toggleAddForm()" class="add-btn"><i class="fas fa-plus-circle"></i> Add New Room</button>
                 <div id="addFormContainer" class="add-form" style="display: none;">
                     <form action="rooms.php" method="post">
                         <div class="form-row">
@@ -342,8 +437,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 <input type="text" name="room_number" placeholder="Enter room number" required>
                             </div>
                             <div class="form-group">
+                                <label>Room Type</label>
+                                <select name="room_type" required style="padding: 10px 14px; border: 1.5px solid #bdbdbd; border-radius: 5px; font-size: 15px; width: 100%;">
+                                    <option value="">Select Room Type</option>
+                                    <option value="Single">Single</option>
+                                    <option value="Double">Double</option>
+                                    <option value="Triple">Triple</option>
+                                    <option value="Quad">Quad</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>Room Capacity</label>
-                                <input type="number" name="capacity" placeholder="Enter room capacity" required>
+                                <input type="number" name="capacity" placeholder="Enter room capacity" min="1" required>
                             </div>
                         </div>
                         <div class="form-actions">
@@ -353,7 +458,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </form>
                 </div>
             </div>
-            <?php endif; ?>
 
             <!-- Stats Overview -->
             <div class="stats-overview">
@@ -411,6 +515,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <thead>
                         <tr>
                             <th>Room Number</th>
+                            <th>Room Type</th>
                             <th>Capacity</th>
                             <th>Current Occupancy</th>
                             <th>Status</th>
@@ -427,6 +532,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             // Use actual count from students table for accuracy
                             $current_occupancy = $row['actual_occupancy'];
                             $capacity = $row['capacity'];
+                            $room_type = isset($row['room_type']) ? $row['room_type'] : 'N/A';
                             $status = $current_occupancy >= $capacity ? 'Full' : 'Available';
                             $statusClass = $status === 'Full' ? 'status-full' : 'status-available';
                             
@@ -443,38 +549,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             
                             echo "<tr>";
                             echo "<td>" . htmlspecialchars($row['room_number']) . "</td>";
+                            echo "<td>" . htmlspecialchars($room_type) . "</td>";
                             echo "<td>" . $capacity . "</td>";
                             echo "<td>" . $current_occupancy . "</td>";
                             echo "<td class='" . $statusClass . "'>" . $status . "</td>";
                             echo "<td>";
-                            if ($is_admin) {
-                                // Remove button moved to assigned rooms list
-                            } else {
-                                // Show assigned status if student is assigned
-                                $student_email = $_SESSION['email'];
-                                $room_id_column = columnExists($conn, 'students', 'room_id') ? 'room_id' : 'NULL as room_id';
-                                $sql_student = "SELECT s." . $room_id_column . " FROM students s 
-                                                LEFT JOIN users u ON s.user_id = u.id 
-                                                WHERE u.email = ?";
-                                if ($stmt_student = $conn->prepare($sql_student)) {
-                                    $stmt_student->bind_param("s", $student_email);
-                                    $stmt_student->execute();
-                                    $result_student = $stmt_student->get_result();
-                                    $student_room_id = null;
-                                    if ($row_student = $result_student->fetch_assoc()) {
-                                        $student_room_id = safeGetColumn($row_student, 'room_id', null);
-                                    }
-                                    $stmt_student->close();
-                                }
-                                
-                                if ($student_room_id == $row['id']) {
-                                    echo '<span>Assigned</span>';
-                                } else if ($status === 'Available') {
-                                    echo '<form method="post" action="rooms.php" style="display:inline;"><input type="hidden" name="room_id" value="' . $row['id'] . '"><button type="submit" name="apply_room">Apply</button></form>';
-                                } else {
-                                    echo '<span>Full</span>';
-                                }
-                            }
+                            // Admin actions
+                            echo '<button onclick="viewRoomDetails(' . $row['id'] . ')" style="background:#1976d2; color:#fff; border:none; padding:8px 16px; border-radius:5px; cursor:pointer; margin-right:5px;">
+                            <i class="fas fa-eye"></i> View</button>';
+                            echo '<form method="post" action="rooms.php" style="display:inline;" onsubmit="return confirm(\'Are you sure you want to delete this room?\');">
+                            <input type="hidden" name="room_id" value="' . $row['id'] . '">
+                            <button type="submit" name="delete_room" style="background:#d32f2f; color:#fff; border:none; padding:8px 16px; border-radius:5px; cursor:pointer;">
+                            <i class="fas fa-trash"></i> Delete</button>
+                            </form>';
                             echo "</td>";
                             echo "</tr>";
                         }
@@ -483,8 +570,66 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     ?>
             </tbody>
         </table>
-
     </div>
+
+    <!-- Assigned Rooms Section -->
+    <div class="assigned-rooms-section" style="margin-top: 40px;">
+        <h2><i class="fas fa-user-check"></i> Assigned Students</h2>
+        <table class="assigned-table rooms-table">
+            <thead>
+                <tr>
+                    <th>Room Number</th>
+                    <th>Room Type</th>
+                    <th>Student Name</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php
+            $sql = "SELECT r.id as room_id, r.room_number, r.room_type, s.id as student_id, s.name 
+                    FROM students s 
+                    JOIN rooms r ON s.room_id = r.id 
+                    ORDER BY r.room_number";
+            if ($result = $conn->query($sql)) {
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $room_type = isset($row['room_type']) ? $row['room_type'] : 'N/A';
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['room_number']) . "</td>";
+                        echo "<td>" . htmlspecialchars($room_type) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['name']) . "</td>";
+                        echo '<td><form method="post" action="rooms.php" style="display:inline;">';
+                        echo '<input type="hidden" name="room_id" value="' . $row['room_id'] . '">';
+                        echo '<input type="hidden" name="student_id" value="' . $row['student_id'] . '">';
+                        echo '<button type="submit" name="unassign_room" style="background:#d32f2f; color:#fff; border:none; padding:8px 16px; border-radius:5px; cursor:pointer;" onclick="return confirm(\'Are you sure you want to unassign this student?\');"><i class="fas fa-user-times"></i> Remove</button>';
+                        echo '</form></td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='4' style='text-align:center; padding:20px; color:#999;'>No students assigned to rooms yet.</td></tr>";
+                }
+                $result->free();
+            }
+            ?>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- Room Details Modal -->
+<div id="roomModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-door-open"></i> Room Details</h2>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Details will be loaded here -->
+        </div>
+    </div>
+</div>
+
 </body>
 <script>
 function toggleAddForm() {
@@ -493,6 +638,98 @@ function toggleAddForm() {
         form.style.display = 'block';
     } else {
         form.style.display = 'none';
+    }
+}
+
+function viewRoomDetails(roomId) {
+    // Show modal
+    document.getElementById('roomModal').style.display = 'block';
+    
+    // Fetch room details via AJAX
+    fetch('get_room_details.php?room_id=' + roomId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let html = `
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-hashtag"></i> Room Number:</span>
+                        <span class="detail-value">${data.room.room_number}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-home"></i> Room Type:</span>
+                        <span class="detail-value">${data.room.room_type}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-users"></i> Capacity:</span>
+                        <span class="detail-value">${data.room.capacity} persons</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-user-check"></i> Current Occupancy:</span>
+                        <span class="detail-value">${data.room.current_occupancy} / ${data.room.capacity}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label"><i class="fas fa-info-circle"></i> Status:</span>
+                        <span class="detail-value" style="color: ${data.room.status === 'Available' ? '#4caf50' : '#f44336'}">
+                            ${data.room.status}
+                        </span>
+                    </div>
+                `;
+                
+                if (data.students && data.students.length > 0) {
+                    html += `
+                        <div class="students-list">
+                            <h4><i class="fas fa-user-graduate"></i> Assigned Students:</h4>`;
+                    data.students.forEach(student => {
+                        html += `<div class="student-item">📌 ${student.name}</div>`;
+                    });
+                    html += `</div>`;
+                } else {
+                    html += `
+                        <div class="students-list">
+                            <h4><i class="fas fa-user-graduate"></i> Assigned Students:</h4>
+                            <p style="color: #999; margin: 10px 0;">No students assigned yet</p>
+                        </div>`;
+                }
+                
+                document.getElementById('modalBody').innerHTML = html;
+            } else {
+                document.getElementById('modalBody').innerHTML = '<p style="color: red;">Error loading room details</p>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('modalBody').innerHTML = '<p style="color: red;">Failed to load room details</p>';
+            console.error('Error:', error);
+        });
+}
+
+function closeModal() {
+    document.getElementById('roomModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    var modal = document.getElementById('roomModal');
+    if (event.target == modal) {
+        closeModal();
+    }
+}
+
+function searchRooms() {
+    var input = document.querySelector('.search-box input');
+    var filter = input.value.toUpperCase();
+    var table = document.querySelector('.rooms-table');
+    var tr = table.getElementsByTagName('tr');
+    
+    for (var i = 1; i < tr.length; i++) {
+        var td = tr[i].getElementsByTagName('td')[0]; // Room Number column
+        if (td) {
+            var txtValue = td.textContent || td.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = '';
+            } else {
+                tr[i].style.display = 'none';
+            }
+        }
     }
 }
 

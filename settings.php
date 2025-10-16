@@ -51,9 +51,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $sql = "SELECT password FROM users WHERE username = 'admin'";
             if ($result = $conn->query($sql)) {
                 $row = $result->fetch_assoc();
-                if (md5($current_password) === $row['password']) {
-                    // Update password
-                    $new_password_hash = md5($new_password);
+                
+                // Verify password (support both bcrypt and md5 for backward compatibility)
+                $password_valid = false;
+                if (password_verify($current_password, $row['password'])) {
+                    $password_valid = true;
+                } elseif (md5($current_password) === $row['password']) {
+                    $password_valid = true;
+                }
+                
+                if ($password_valid) {
+                    // Always use bcrypt for new password
+                    $new_password_hash = password_hash($new_password, PASSWORD_DEFAULT);
                     $sql = "UPDATE users SET password = ? WHERE username = 'admin'";
                     if ($stmt = $conn->prepare($sql)) {
                         $stmt->bind_param("s", $new_password_hash);

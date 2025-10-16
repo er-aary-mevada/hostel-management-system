@@ -43,8 +43,18 @@ $success_msg = "";
                     $stmt->bind_result($stored_password);
                     $stmt->fetch();
                     $stmt->close();
-                    if (md5($current_password) === $stored_password) {
-                        $new_password_hash = md5($new_password);
+                    
+                    // Verify password (support both bcrypt and md5 for backward compatibility)
+                    $password_valid = false;
+                    if (password_verify($current_password, $stored_password)) {
+                        $password_valid = true;
+                    } elseif (md5($current_password) === $stored_password) {
+                        $password_valid = true;
+                    }
+                    
+                    if ($password_valid) {
+                        // Always use bcrypt for new password
+                        $new_password_hash = password_hash($new_password, PASSWORD_DEFAULT);
                         $sql = "UPDATE users SET password = ? WHERE username = ?";
                         if ($stmt = $conn->prepare($sql)) {
                             $stmt->bind_param("ss", $new_password_hash, $_SESSION["username"]);
